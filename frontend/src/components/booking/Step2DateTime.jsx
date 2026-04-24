@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
-import { format, addDays, startOfDay, isBefore } from 'date-fns'
+import { format, addDays, startOfDay } from 'date-fns'
 import { TIME_SLOTS } from '../../lib/pricing'
 
 function generateDays(count = 14) {

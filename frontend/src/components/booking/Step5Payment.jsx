@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { Lock, CreditCard, AlertCircle } from 'lucide-react'
@@ -8,10 +7,9 @@ import { formatPrice, SERVICES, PROPERTY_SIZES } from '../../lib/pricing'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder')
 
-function CheckoutForm({ formData, price, onBack }) {
+function CheckoutForm({ formData, price, bookingId, onBack }) {
   const stripe = useStripe()
   const elements = useElements()
-  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -33,19 +31,10 @@ function CheckoutForm({ formData, price, onBack }) {
         return
       }
 
-      // Create booking + payment intent on backend
-      const { data } = await axios.post('/api/bookings', {
-        ...formData,
-        price,
-        serviceName: service?.title,
-        propertyLabel,
-      })
-
       const { error: confirmError } = await stripe.confirmPayment({
         elements,
-        clientSecret: data.clientSecret,
         confirmParams: {
-          return_url: `${window.location.origin}/confirmation/${data.bookingId}`,
+          return_url: `${window.location.origin}/confirmation/${bookingId}`,
         },
       })
 
@@ -130,6 +119,7 @@ function CheckoutForm({ formData, price, onBack }) {
 
 export default function Step5Payment({ formData, price, onBack }) {
   const [clientSecret, setClientSecret] = useState(null)
+  const [bookingId, setBookingId] = useState(null)
   const [initError, setInitError] = useState('')
   const [initialising, setInitialising] = useState(false)
   const [started, setStarted] = useState(false)
@@ -138,8 +128,16 @@ export default function Step5Payment({ formData, price, onBack }) {
     setInitialising(true)
     setInitError('')
     try {
-      const { data } = await axios.post('/api/payments/create-intent', { amount: price })
+      const service = SERVICES.find((s) => s.id === formData.serviceId)
+      const propertyLabel = PROPERTY_SIZES.find((p) => p.id === formData.propertySize)?.label
+      const { data } = await axios.post('/api/bookings', {
+        ...formData,
+        price,
+        serviceName: service?.title,
+        propertyLabel,
+      })
       setClientSecret(data.clientSecret)
+      setBookingId(data.bookingId)
       setStarted(true)
     } catch {
       setInitError('Could not initialise payment. Please check your connection and try again.')
@@ -218,7 +216,7 @@ export default function Step5Payment({ formData, price, onBack }) {
         },
       }}
     >
-      <CheckoutForm formData={formData} price={price} onBack={() => setStarted(false)} />
+      <CheckoutForm formData={formData} price={price} bookingId={bookingId} onBack={() => setStarted(false)} />
     </Elements>
   )
 }

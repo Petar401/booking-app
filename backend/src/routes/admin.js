@@ -3,15 +3,6 @@ import { supabase } from '../lib/supabase.js'
 
 const router = Router()
 
-// Simple token-based guard for admin routes
-function adminGuard(req, res, next) {
-  const token = req.headers['x-admin-token']
-  if (token !== process.env.ADMIN_SECRET_TOKEN) {
-    return res.status(401).json({ message: 'Unauthorized.' })
-  }
-  next()
-}
-
 // GET /api/admin/bookings
 router.get('/bookings', async (req, res) => {
   const { data, error } = await supabase
